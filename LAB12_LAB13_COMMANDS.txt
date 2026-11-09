@@ -1,0 +1,87 @@
+CHURN PREDICTION MLOPS — LAB 12 & LAB 13 RUN COMMANDS
+
+IMPORTANT
+- Open PowerShell in the churn-prediction project root (the folder containing README.md).
+- The project package is reconstructed from its original file-placement map.
+- Use Python 3.11 as specified in README.md.
+- Start with a fresh virtual environment; do not copy a venv from another PC.
+
+ONE-TIME SETUP (PowerShell)
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-api.txt
+
+LAB 12 — MONITORING / DRIFT / RETRAINING
+Run from project root, in this order when performing the full monitoring exercise:
+
+1) Generate/evolve monitoring data (choose the dataset generator required by the lab task):
+python .\src\mlops_pipeline\12_create_evolved_dataset.py
+
+2) Run the drift analyses:
+python .\src\mlops_pipeline\12_data_drift.py
+python .\src\mlops_pipeline\12_prediction_drift.py
+python .\src\mlops_pipeline\12_concept_drift.py
+python .\src\mlops_pipeline\12_drift_analysis.py
+
+3) Run monitoring reports (these depend on inference logs / previous reports existing):
+python .\src\mlops_pipeline\12_prediction_monitoring.py
+python .\src\mlops_pipeline\12_api_performance_monitoring.py
+python .\src\mlops_pipeline\12_performance_monitoring.py
+python .\src\mlops_pipeline\12_performance_trend.py
+python .\src\mlops_pipeline\12_request_history.py
+
+4) Compare and retrain/update registry only when the lab exercise calls for it:
+python .\src\mlops_pipeline\12_model_comparison.py
+python .\src\mlops_pipeline\12_retrain_model.py
+python .\src\mlops_pipeline\12_update_mlflow_registry.py
+
+5) All-in-one monitoring trigger (uses existing drift reports and checks data/raw/new_churn.csv):
+python .\src\mlops_pipeline\12_monitor_trigger.py
+
+LAB 13 — END-TO-END PIPELINE + AUTOMATION
+Prerequisites: Docker Desktop running; Kubernetes enabled in Docker Desktop if deployment checks are required; kubectl installed; MLflow tracking/registry artifacts configured.
+
+1) Run the end-to-end pipeline manually:
+python .\src\mlops_pipeline\churn_prediction_pipeline.py
+
+2) Run the monitoring/retraining trigger:
+python .\src\mlops_pipeline\12_monitor_trigger.py
+
+3) Inspect generated reports:
+python -m json.tool .\artifacts\data_load_report.json
+python -m json.tool .\reports\evaluation_report.json
+python -m json.tool .\reports\lifecycle_report.json
+python -m json.tool .\reports\deployment_automation_report.json
+Get-Content .\outputs\drift\drift_analysis_report.csv
+Get-Content .\outputs\monitoring\monitor_trigger_report.json
+
+4) Check Docker/Kubernetes (only for deployment portion):
+docker info
+kubectl get nodes
+kubectl get deployment churn-api
+kubectl get pods
+kubectl get service churn-api-service
+
+5) Start FastAPI locally if API testing is required:
+uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
+Then open http://127.0.0.1:8000/docs
+
+6) Run tests (if dependencies and model artifacts are ready):
+python -m pytest tests -v
+
+7) GitHub Actions workflow:
+- Push the project to your GitHub repository (main branch).
+- Open Actions → Lab 13 - End-to-End MLOps → Run workflow.
+- The supplied workflow targets a self-hosted Windows runner labelled self-hosted, Windows, X64.
+- To run that runner locally, configure your own runner first, then in its folder run:
+  .\run.cmd
+- Do not assume the original developer's local runner path exists on your PC.
+
+NOTES / COMMON ISSUES
+- Run every command from the project root, not from src\mlops_pipeline.
+- Some Lab 12 scripts require prior inference logs or drift output files; if a script reports a missing input, run the preceding pipeline/inference stage first.
+- Lab 13 can stop safely when new_churn.csv was already ingested (duplicate batch). A new batch must have valid columns and unique customer IDs.
+- Deployment is promotion-gated; a candidate model can pass the minimum quality threshold and still not replace Production.
+- The archive intentionally excludes local venvs, Git history, MLflow run-artifact storage, local mlflow.db, caches, and local secrets. A fresh environment may require MLflow registry setup before registry/deployment commands work.

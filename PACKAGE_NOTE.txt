@@ -1,0 +1,1 @@
+This ZIP restores the original project folder structure using FILE_PLACEMENT_MAP.csv from the source handout. See README.md and LAB12_LAB13_COMMANDS.txt. Local virtual environments, Git history, MLflow run-artifact storage, mlflow.db, caches, and secrets were intentionally excluded from the source handout.
